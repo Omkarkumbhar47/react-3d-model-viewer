@@ -18,17 +18,18 @@ function Header() {
 
   const date = new Date();
   const longDate = date.toLocaleDateString("en-US", {
-    weekday: "short",
+    // weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
+    // second: "2-digit",
     // timeZoneName: "short",
     // timeZoneOffset: "UTC"
   }).replace("at" ,"|");
-  const currentTimeString = currentTime.toLocaleTimeString();
+
+  // const currentTimeString = currentTime.toLocaleTimeString();
 
   // const toggleFullScreen = () => {
   //   setFullScreenOn(fullScreenOn);
