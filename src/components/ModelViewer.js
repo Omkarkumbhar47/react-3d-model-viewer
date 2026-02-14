@@ -5,7 +5,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Center, Environment } from "@react-three/drei";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
@@ -53,8 +53,9 @@ export default function ModelViewer({
   const [selectedPart, setSelectedPart] = useState(null);
   const [originalMaterials, setOriginalMaterials] = useState([]);
   const gridHelperRef = useRef();
-  const modelRef = useRef();
   const [loading, setLoading] = useState(false);
+  console.log("Error", error);
+  console.log("parts", parts);
 
   // Demo models
   const demoModels = [
@@ -66,101 +67,20 @@ export default function ModelViewer({
     { name: "Zuk 3d Model.glb", demoFile: "/Zuk 3d Model.glb" },
   ];
 
-  const loadModel = (file) => {
-    setError(null);
-    setLoading(true);
-  
-    let fileExtension;
-    let url;
-    let isUploadedFile = false;
-  
-    if (file instanceof File) {
-      fileExtension = file.name.split(".").pop().toLowerCase();
-      url = URL.createObjectURL(file);
-      isUploadedFile = true;
-      proceedToLoad(fileExtension, url, file);
-    } else if (typeof file === "string") {
-      fileExtension = file.split(".").pop().toLowerCase();
-      url = file;
-  
-      // Check if demo file exists first
-      fetch(url, { method: "HEAD" })
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error("Demo file not found");
-          }
-          // Continue with loader
-          proceedToLoad(fileExtension, url, { name: url, size: 0 });
-        })
-        .catch((err) => {
-          console.error("Demo model loading error:", err);
-          setError("Failed to load demo model. File might be missing.");
-          setLoading(false);
-        });
-  
-      return; // Skip further loading for string case
-    } else {
-      console.error("Invalid file type:", file);
-      setError("Invalid file type.");
-      setLoading(false);
-      return;
-    }
-  
-    // Core loading function
-    function proceedToLoad(extension, modelURL, originalFile) {
-      let loader;
-  
-      switch (extension) {
-        case "glb":
-        case "gltf":
-          loader = new GLTFLoader();
-          break;
-        case "obj":
-          loader = new OBJLoader();
-          break;
-        case "fbx":
-          loader = new FBXLoader();
-          break;
-        default:
-          setError("Unsupported file format. Use .glb, .gltf, .obj, or .fbx.");
-          setLoading(false);
-          return;
-      }
-  
-      loader
-        .loadAsync(modelURL)
-        .then((loadedModel) => {
-          const scene = loadedModel.scene || loadedModel;
-          setModel(scene);
-  
-          if (isUploadedFile) {
-            URL.revokeObjectURL(modelURL);
-          }
-  
-          extractParts(scene);
-          storeOriginalMaterials(scene);
-          calculateModelDetails(scene, loadedModel, originalFile);
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error("Model loading error:", err);
-          setError("Failed to load model. Please try a different file.");
-          setLoading(false);
-        });
-    }
-  };
-  
+  const extractParts = useCallback(
+    (model) => {
+      const partsArray = [];
+      model.traverse((child) => {
+        if (child.isMesh) {
+          partsArray.push({ name: child.name || "Unnamed Part", mesh: child });
+        }
+      });
+      setParts(partsArray);
+      onModelLoad(partsArray); // Pass parts to parent component
+    },
+    [onModelLoad],
+  );
 
-  const extractParts = (model) => {
-    const partsArray = [];
-    model.traverse((child) => {
-      if (child.isMesh) {
-        partsArray.push({ name: child.name || "Unnamed Part", mesh: child });
-      }
-    });
-    setParts(partsArray);
-    onModelLoad(partsArray); // Pass parts to parent component
-  };
   const centerModel = (model) => {
     const box = new Box3().setFromObject(model);
     const center = new Vector3();
@@ -205,7 +125,7 @@ export default function ModelViewer({
           link.download = "model.gltf";
           link.click();
         },
-        { binary: false }
+        { binary: false },
       );
     }
   };
@@ -222,7 +142,7 @@ export default function ModelViewer({
     });
   };
 
-  const storeOriginalMaterials = (model) => {
+  const storeOriginalMaterials = useCallback((model) => {
     const materials = [];
     model.traverse((child) => {
       if (child.isMesh) {
@@ -234,14 +154,14 @@ export default function ModelViewer({
       }
     });
     setOriginalMaterials(materials);
-  };
+  }, []);
 
   const handleHighlighting = useCallback(() => {
     if (model && originalMaterials.length > 0) {
       model.traverse((child) => {
         if (child.isMesh) {
           const materialData = originalMaterials.find(
-            (data) => data.mesh === child
+            (data) => data.mesh === child,
           );
           if (materialData) {
             if (selectedPart && selectedPart === child) {
@@ -291,75 +211,169 @@ export default function ModelViewer({
     handleHighlighting,
   ]);
 
-  const calculateModelDetails = (scene, loadedModel, file) => {
-    let vertices = 0;
-    let triangles = 0;
-    let volume = 0;
-    let surfaceArea = 0;
-    const materials = new Set();
-    const boundingBox = new THREE.Box3().setFromObject(scene);
-    const size = boundingBox.getSize(new THREE.Vector3());
-    var assetGenerator = "Unknown";
-    var assetVersion = "Unknown";
-    scene.traverse((child) => {
-      if (child.isMesh && child.geometry) {
-        const geometry = child.geometry;
+  const calculateModelDetails = useCallback(
+    (scene, loadedModel, file) => {
+      let vertices = 0;
+      let triangles = 0;
+      let volume = 0;
+      let surfaceArea = 0;
+      const materials = new Set();
+      const boundingBox = new THREE.Box3().setFromObject(scene);
+      const size = boundingBox.getSize(new THREE.Vector3());
+      var assetGenerator = "Unknown";
+      var assetVersion = "Unknown";
+      scene.traverse((child) => {
+        if (child.isMesh && child.geometry) {
+          const geometry = child.geometry;
 
-        // Count vertices and triangles
-        vertices += geometry.attributes.position.count;
-        if (geometry.index !== null) {
-          triangles += geometry.index.count / 3;
-        } else {
-          triangles += geometry.attributes.position.count / 3;
-        }
-
-        // Collect materials
-        if (child.material) {
-          if (Array.isArray(child.material)) {
-            child.material.forEach((mat) => materials.add(mat.name));
+          // Count vertices and triangles
+          vertices += geometry.attributes.position.count;
+          if (geometry.index !== null) {
+            triangles += geometry.index.count / 3;
           } else {
-            materials.add(child.material.name);
+            triangles += geometry.attributes.position.count / 3;
+          }
+
+          // Collect materials
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach((mat) => materials.add(mat.name));
+            } else {
+              materials.add(child.material.name);
+            }
+          }
+
+          // Calculate volume and surface area
+          volume += calculateVolume(geometry);
+          surfaceArea += calculateSurfaceArea(geometry);
+
+          // Extract asset properties if available
+
+          if (loadedModel.parser && loadedModel.parser.json) {
+            const asset = loadedModel.parser.json.asset || {};
+            assetGenerator = asset.generator || "Unknown";
+            assetVersion = asset.version || "Unknown";
           }
         }
+      });
 
-        // Calculate volume and surface area
-        volume += calculateVolume(geometry);
-        surfaceArea += calculateSurfaceArea(geometry);
+      // Update model details via parent state
+      setModelDetails({
+        fileName: file.name,
+        fileSize: (file.size / 1024 / 1024).toFixed(2) + " MB", // Convert bytes to MB
+        vertices,
+        triangles,
+        sizeX: size.x.toFixed(2),
+        sizeY: size.y.toFixed(2),
+        sizeZ: size.z.toFixed(2),
+        volume: volume.toFixed(2),
+        surfaceArea: surfaceArea.toFixed(2),
+        materials: Array.from(materials),
+        generator: assetGenerator,
+        version: assetVersion,
+      });
+    },
+    [setModelDetails],
+  );
 
-        // Extract asset properties if available
+  const loadModel = useCallback(
+    (file) => {
+      setError(null);
+      setLoading(true);
 
-        if (loadedModel.parser && loadedModel.parser.json) {
-          const asset = loadedModel.parser.json.asset || {};
-          assetGenerator = asset.generator || "Unknown";
-          assetVersion = asset.version || "Unknown";
-        }
+      let fileExtension;
+      let url;
+      let isUploadedFile = false;
+
+      if (file instanceof File) {
+        fileExtension = file.name.split(".").pop().toLowerCase();
+        url = URL.createObjectURL(file);
+        isUploadedFile = true;
+        proceedToLoad(fileExtension, url, file);
+      } else if (typeof file === "string") {
+        fileExtension = file.split(".").pop().toLowerCase();
+        url = file;
+
+        // Check if demo file exists first
+        fetch(url, { method: "HEAD" })
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error("Demo file not found");
+            }
+            // Continue with loader
+            proceedToLoad(fileExtension, url, { name: url, size: 0 });
+          })
+          .catch((err) => {
+            console.error("Demo model loading error:", err);
+            setError("Failed to load demo model. File might be missing.");
+            setLoading(false);
+          });
+
+        return; // Skip further loading for string case
+      } else {
+        console.error("Invalid file type:", file);
+        setError("Invalid file type.");
+        setLoading(false);
+        return;
       }
-    });
 
-    // Update model details via parent state
-    setModelDetails({
-      fileName: file.name,
-      fileSize: (file.size / 1024 / 1024).toFixed(2) + " MB", // Convert bytes to MB
-      vertices,
-      triangles,
-      sizeX: size.x.toFixed(2),
-      sizeY: size.y.toFixed(2),
-      sizeZ: size.z.toFixed(2),
-      volume: volume.toFixed(2),
-      surfaceArea: surfaceArea.toFixed(2),
-      materials: Array.from(materials),
-      generator: assetGenerator,
-      version: assetVersion,
-    });
-  };
+      // Core loading function
+      function proceedToLoad(extension, modelURL, originalFile) {
+        let loader;
 
-  const onDrop = useCallback((event) => {
-    event.preventDefault();
-    setIsDragActive(false);
-    const file = event.dataTransfer.files[0];
-    if (file) loadModel(file);
-  }, []);
+        switch (extension) {
+          case "glb":
+          case "gltf":
+            loader = new GLTFLoader();
+            break;
+          case "obj":
+            loader = new OBJLoader();
+            break;
+          case "fbx":
+            loader = new FBXLoader();
+            break;
+          default:
+            setError(
+              "Unsupported file format. Use .glb, .gltf, .obj, or .fbx.",
+            );
+            setLoading(false);
+            return;
+        }
 
+        loader
+          .loadAsync(modelURL)
+          .then((loadedModel) => {
+            const scene = loadedModel.scene || loadedModel;
+            setModel(scene);
+
+            if (isUploadedFile) {
+              URL.revokeObjectURL(modelURL);
+            }
+
+            extractParts(scene);
+            storeOriginalMaterials(scene);
+            calculateModelDetails(scene, loadedModel, originalFile);
+            setLoading(false);
+          })
+          .catch((err) => {
+            console.error("Model loading error:", err);
+            setError("Failed to load model. Please try a different file.");
+            setLoading(false);
+          });
+      }
+    },
+    [extractParts, calculateModelDetails, storeOriginalMaterials],
+  );
+
+  const onDrop = useCallback(
+    (event) => {
+      event.preventDefault();
+      setIsDragActive(false);
+      const file = event.dataTransfer.files[0];
+      if (file) loadModel(file);
+    },
+    [loadModel],
+  );
   return (
     <div
       id="model-viewer-container"

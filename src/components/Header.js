@@ -1,35 +1,27 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 function Header() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // const [fullScreenOn, setFullScreenOn] = useState(false);
-
-  // Update the time every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
 
-    return () => clearInterval(timer); // Cleanup timer on component unmount
+    return () => clearInterval(timer);
   }, []);
 
-
-  const date = new Date();
-  const longDate = date.toLocaleDateString("en-US", {
-    // weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    // second: "2-digit",
-    // timeZoneName: "short",
-    // timeZoneOffset: "UTC"
-  }).replace("at" ,"|");
-
-  // const currentTimeString = currentTime.toLocaleTimeString();
+  // const date = new Date();
+  const longDate = currentTime
+    .toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    .replace("at", "|");
 
   // const toggleFullScreen = () => {
   //   setFullScreenOn(fullScreenOn);
@@ -66,18 +58,18 @@ function Header() {
 
   return (
     <div className="d-flex justify-content-between align-items-center w-100">
-    {/* Logo / Title */}
-    <Link to="/" className="fs-3">
-      <div className="ThreeDElem">3D Viewer</div>
-    </Link>
+      {/* Logo / Title */}
+      <Link to="/" className="fs-3">
+        <div className="ThreeDElem">3D Viewer</div>
+      </Link>
 
-    {/* Date-Time Display */}
-    <div className="date-time ">
-      <span>{longDate}</span>
-    </div>
+      {/* Date-Time Display */}
+      <div className="date-time ">
+        <span>{longDate}</span>
+      </div>
 
-    {/* Navigation Links */}
-    {/* <div className="navigation d-none d-md-flex">
+      {/* Navigation Links */}
+      {/* <div className="navigation d-none d-md-flex">
       <Link
         to="/"
         className="btn btn-outline-light mx-2"
@@ -101,8 +93,8 @@ function Header() {
       </Link>
     </div> */}
 
-    {/* Fullscreen Controls */}
-    {/* <div className="controls d-none d-sm-block">
+      {/* Fullscreen Controls */}
+      {/* <div className="controls d-none d-sm-block">
       {fullScreenOn ? (
         <button
           className="ThreeDButton ThreeDElem"
@@ -123,7 +115,7 @@ function Header() {
         </button>
       )}
     </div> */}
-  </div>
+    </div>
   );
 }
 

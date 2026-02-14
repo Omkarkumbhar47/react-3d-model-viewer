@@ -57,7 +57,6 @@ const hdriOptions = [
     thumbnail: Harbor,
     url: "/environment/small_harbor_01_4k.hdr",
   },
-
 ];
 
 const Sidebar = ({
@@ -81,6 +80,7 @@ const Sidebar = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDetailsOpen, setisDetailsOpen] = useState(false);
   const [selectedBackgroundType, setSelectedBackgroundType] = useState(null);
+  console.log("selectedBackgroundType", selectedBackgroundType);
 
   const handleMeshesClick = () => {
     setIsMeshesOpen((prev) => !prev);
