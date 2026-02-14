@@ -1,7 +1,7 @@
 # 🚀 3D Model Viewer – Interactive Web-Based 3D Exploration Tool
 
-🌐 **Live Demo:** https://3d-viewer-eight.vercel.app
-📂 **Repository:** https://github.com/Omkarkumbhar47/3D-Viewer
+🌐 **Live Demo:** https://3d-viewer-eight.vercel.app  
+📂 **Repository:** https://github.com/Omkarkumbhar47/3D-Viewer  
 👨‍💻 **Author:** Omkar Kumbhar
 
 ---
@@ -20,6 +20,19 @@ Traditional 3D model inspection tools often require heavy desktop software and c
 This project solves that by providing a **lightweight, responsive, and interactive web-based 3D viewer** that runs directly in the browser.
 
 ---
+
+## 📸 Screenshots
+
+### 🧊 3D Model Viewer Interface
+
+![Viewer](./screenshots/Home.png)
+
+
+### 💡 Lighting & Environment Settings
+
+![Sidebar](./screenshots/Lighting.png)
+
+
 
 ## ✨ Key Features
 
